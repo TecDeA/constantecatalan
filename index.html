@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Constante de Catalán · suma truncada y error</title>
+<meta name="description" content="Calcula la constante de Catalán G = Σ (−1)^k/(2k+1)² truncando la serie en k = K y compara el error cometido con el valor exacto.">
+<meta name="color-scheme" content="light">
+
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f5f7fc">
+<meta name="application-name" content="Catalán G">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Catalán G">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+  :root{
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, Menlo, monospace;
+    --ink: #17233c; --muted: #5c6b87; --soft: #68789a;
+    --accent: #2b59c3; --accent-dark: #234aa8; --amber: #b45309; --rose: #be123c;
+    --line: #e2e7f1; --grid: #eef1f8;
+    --shadow: 0 1px 2px rgba(23,35,60,.05), 0 8px 24px rgba(23,35,60,.05);
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body{ margin: 0; }
+  body{
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink); line-height: 1.55;
+    background:
+      radial-gradient(1100px 480px at 88% -8%, #e3ebfb 0%, rgba(227,235,251,0) 62%),
+      radial-gradient(900px 420px at -10% 8%, #eaf1fa 0%, rgba(234,241,250,0) 55%),
+      #f5f7fc;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap{ max-width: 1040px; margin: 0 auto; padding: max(34px, env(safe-area-inset-top, 0px)) max(22px, env(safe-area-inset-right, 0px)) calc(56px + env(safe-area-inset-bottom, 0px)) max(22px, env(safe-area-inset-left, 0px)); }
+
+  header{ text-align: center; margin-bottom: 26px; }
+  .overline{ font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--soft); font-weight: 600; }
+  h1{
+    font-family: Georgia, "Times New Roman", serif; font-weight: 600;
+    font-size: clamp(28px, 4.5vw, 40px); margin: .22em 0 .18em; letter-spacing: -.01em;
+  }
+  h1 .gvar{ color: var(--accent); }
+  .lead{ max-width: 680px; margin: 0 auto; color: #4a5a78; font-size: 15.5px; }
+
+  .math{ font-family: Georgia, "Times New Roman", serif; font-style: normal; }
+  .math i{ font-style: italic; }
+  .frac{ display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 6px; line-height: 1.25; }
+  .frac .num{ border-bottom: 1.5px solid #2a3650; padding: 0 8px 3px; }
+  .frac .den{ padding-top: 3px; }
+  .sigma{ display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 10px; line-height: 1; }
+  .sigma .sym{ font-size: 36px; font-family: Georgia, serif; line-height: .9; }
+  .sigma .lo, .sigma .up{ font-size: 12.5px; margin-top: 3px; }
+  .sigma .up{ margin: 0 0 3px; }
+
+  .formula-card{
+    margin: 24px auto 0; max-width: 740px; background: #fff;
+    border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow);
+    padding: 24px 28px;
+  }
+  .formula-eq{ font-size: 21px; white-space: nowrap; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; }
+  .formula-val{ margin-top: 12px; font-size: 13.5px; color: #4a5a78; }
+  .formula-val code{
+    font-family: var(--mono); font-size: 12.5px; background: #f1f4fb;
+    padding: 2px 8px; border-radius: 6px; color: var(--ink);
+    white-space: normal; overflow-wrap: anywhere;
+  }
+
+  .block{ margin-top: 30px; }
+  .card{ background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); padding: 20px 22px; }
+  h2{ font-family: Georgia, serif; font-weight: 600; font-size: 20px; margin: 0 0 14px; }
+  h3{ font-size: 16px; margin: 0 0 12px; font-weight: 650; }
+
+  .ctl-grid{ display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  .field{ flex: 1 1 300px; }
+  .field label{ display: block; font-size: 12.5px; font-weight: 600; color: #425274; margin-bottom: 6px; }
+  #kInput{
+    width: 230px; max-width: 100%; font: 600 18px var(--mono);
+    padding: 10px 12px; border: 1.5px solid #ccd6ea; border-radius: 10px;
+    color: var(--ink); background: #fbfcfe; outline: none;
+  }
+  #kInput:focus{ border-color: var(--accent); box-shadow: 0 0 0 3px rgba(43,89,195,.14); }
+  button.primary{
+    background: var(--accent); color: #fff; border: none; border-radius: 10px;
+    padding: 12px 22px; font: 600 15px system-ui, sans-serif; cursor: pointer; transition: .15s;
+    min-height: 48px; touch-action: manipulation;
+  }
+  button.primary:hover{ background: var(--accent-dark); }
+  button.primary:active{ transform: translateY(1px); }
+  button.primary:disabled{ opacity: .55; cursor: default; }
+  button.secondary{
+    background: #fff; color: var(--accent); border: 1.5px solid #c6d4f0; border-radius: 10px;
+    padding: 12px 18px; font: 600 14.5px system-ui, sans-serif; cursor: pointer;
+    min-height: 48px; touch-action: manipulation; transition: .15s;
+  }
+  button.secondary:hover{ background: #eef3fd; border-color: var(--accent); }
+  #iosHint{
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 50;
+    display: flex; align-items: center; gap: 10px; width: max-content; max-width: min(92vw, 560px);
+    background: var(--ink); color: #eef2fb; font-size: 13px;
+    padding: 12px 6px 12px 16px; border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(23,35,60,.35);
+  }
+  #iosHint[hidden]{ display: none; }
+  #iosHint button{ background: none; border: none; color: #9db0d8; font-size: 20px; line-height: 1; cursor: pointer; padding: 2px 8px; }
+  .chips{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chip{
+    display: inline-flex; align-items: center; min-height: 40px;
+    font: 500 13px var(--mono); color: var(--accent); background: #eef3fd;
+    border: 1px solid #d5e0f6; border-radius: 999px; padding: 7px 15px; cursor: pointer; transition: .12s;
+    touch-action: manipulation;
+  }
+  .chip:hover{ background: #e0eafc; border-color: var(--accent); }
+  .bar{ height: 6px; background: #e8edf7; border-radius: 999px; margin-top: 16px; overflow: hidden; opacity: 0; transition: opacity .25s; }
+  .bar.on{ opacity: 1; }
+  .bar .fill{ height: 100%; width: 0%; background: linear-gradient(90deg, #2b59c3, #5a83e0); border-radius: 999px; transition: width .12s linear; }
+  .status{ margin-top: 9px; font-size: 13px; color: var(--muted); }
+  .warn{ margin-top: 4px; font-size: 12.5px; color: #9a5b10; display: none; }
+  .warn.on{ display: block; }
+
+  .stats{ display: grid; grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); gap: 12px; }
+  .stat{ background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(23,35,60,.04); }
+  .stat .lbl{ font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--soft); font-weight: 650; }
+  .stat .val{ margin-top: 6px; font: 600 15.5px/1.35 var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+  .stat .val.accent{ color: var(--accent); }
+  .stat .val.amber{ color: var(--amber); }
+  .stat .hint{ font-size: 10.5px; color: #8a97b3; margin-top: 5px; }
+  .mono{ font-family: var(--mono); }
+  .strong{ font-weight: 700; }
+  .subline{ margin-top: 14px; font-size: 13.5px; color: #425274; background: #f6f8fd; border: 1px dashed #d5deee; border-radius: 12px; padding: 10px 14px; }
+  .meta{ margin-top: 8px; font-size: 12.5px; color: var(--soft); overflow-wrap: anywhere; }
+
+  .charts{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .chartbox{ position: relative; }
+  canvas{ display: block; width: 100%; height: 280px; }
+  .cap{ margin: 10px 2px 0; font-size: 12.5px; color: var(--soft); }
+  .tip{
+    position: absolute; pointer-events: none; z-index: 5;
+    background: var(--ink); color: #f2f5fb; font: 500 12px var(--mono);
+    padding: 7px 10px; border-radius: 8px; white-space: nowrap;
+    box-shadow: 0 6px 18px rgba(23,35,60,.25); opacity: 0; transition: opacity .12s;
+  }
+  .tip sub, .tip sup{ font-size: 9px; }
+  .ring{
+    position: absolute; width: 14px; height: 14px; border: 2px solid var(--accent);
+    border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%);
+    opacity: 0; transition: opacity .12s; z-index: 4;
+  }
+
+  .tscroll{ overflow: auto; max-height: 440px; border: 1px solid #e8edf7; border-radius: 12px; }
+  table{ border-collapse: collapse; width: 100%; font-size: 13px; }
+  thead th{
+    position: sticky; top: 0; z-index: 2; background: #f6f8fd; color: #425274;
+    text-align: right; font-weight: 650; padding: 9px 14px; border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  thead th:first-child{ text-align: left; }
+  tbody td{ padding: 7px 14px; border-bottom: 1px solid #f0f3fa; text-align: right; font-family: var(--mono); white-space: nowrap; }
+  tbody td:first-child{ text-align: left; }
+  tbody tr:nth-child(even){ background: #fbfcff; }
+  tbody tr:hover{ background: #f0f5fe; }
+  tbody tr.last{ background: #fff7ec; }
+  tbody tr.last td{ font-weight: 700; border-top: 2px solid #e7cfa4; }
+  td sup, th sup, .hint sup{ font-size: 9px; }
+  td sub, th sub{ font-size: 9px; }
+
+  .notes ul{ margin: 0; padding-left: 20px; display: grid; gap: 9px; font-size: 13.5px; color: #3d4d6e; }
+  .notes li b{ color: var(--ink); }
+
+  footer{ margin-top: 30px; text-align: center; font-size: 12.5px; color: #8a97b3; }
+
+  @media (max-width: 860px){
+    .charts{ grid-template-columns: 1fr; }
+    canvas{ height: 240px; }
+  }
+  @media (max-width: 560px){
+    .formula-eq{ font-size: 16px; }
+    .sigma .sym{ font-size: 26px; }
+    .sigma{ margin: 0 6px; }
+    .frac{ margin: 0 4px; }
+    .formula-card{ padding: 18px 14px; }
+    .ctl-grid{ flex-direction: column; align-items: stretch; }
+    #kInput{ width: 100%; }
+    button.primary, button.secondary{ width: 100%; }
+    .card{ padding: 16px; }
+    h2{ font-size: 18px; }
+    thead th, tbody td{ padding: 8px 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="overline">Series alternadas · Análisis numérico interactivo</div>
+    <h1>La constante de Catalán <span class="math gvar"><i>G</i></span></h1>
+    <p class="lead">La serie <span class="math"><i>G</i> = Σ (−1)<sup><i>k</i></sup>/(2<i>k</i>+1)<sup>2</sup></span> converge muy lentamente hacia la constante de Catalán. Esta herramienta trunca la suma en un índice <span class="math"><i>K</i></span> que tú eliges, calcula la aproximación <span class="math"><i>S<sub>K</sub></i></span> y mide el error cometido frente al valor exacto, con gráficas de convergencia y tabla de sumas parciales.</p>
+    <div class="formula-card">
+      <div class="math formula-eq">
+        <i>G</i>&nbsp;=
+        <span class="sigma"><span class="sym">Σ</span><span class="lo"><i>k</i> ≥ 0</span></span>
+        <span class="frac"><span class="num">(−1)<sup><i>k</i></sup></span><span class="den">(2<i>k</i> + 1)<sup>2</sup></span></span>
+        <span>&nbsp;=&nbsp;1 −</span>
+        <span class="frac"><span class="num">1</span><span class="den">9</span></span>
+        <span>+&nbsp;</span>
+        <span class="frac"><span class="num">1</span><span class="den">25</span></span>
+        <span>−&nbsp;</span>
+        <span class="frac"><span class="num">1</span><span class="den">49</span></span>
+        <span>+ ⋯</span>
+      </div>
+      <div class="formula-val">Valor de referencia: <code>G = 0.91596559417721901505460351493238411077414937428167…</code> (OEIS A006752)</div>
+    </div>
+  </header>
+
+  <section class="card block">
+    <div class="ctl-grid">
+      <div class="field">
+        <label for="kInput">Truncar la serie en <span class="math"><i>k</i> = <i>K</i></span> · se suman los términos desde <span class="math"><i>k</i></span> = 0 hasta <span class="math"><i>K</i></span> (entero, 0 ≤ <span class="math"><i>K</i></span> ≤ 10⁹)</label>
+        <input id="kInput" type="number" inputmode="numeric" min="0" max="1000000000" step="1" value="20">
+      </div>
+      <button id="calcBtn" class="primary">Calcular G y el error</button>
+      
+      <button id="installBtn" class="secondary" hidden>Instalar aplicación</button>
+    </div>
+    <div class="chips">
+      <button class="chip" data-k="10">K = 10</button>
+      <button class="chip" data-k="100">K = 100</button>
+      <button class="chip" data-k="1000">K = 1 000</button>
+      <button class="chip" data-k="1000000">K = 10⁶</button>
+      <button class="chip" data-k="100000000">K = 10⁸</button>
+      <button class="chip" data-k="1000000000">K = 10⁹</button>
+    </div>
+    <div class="bar" id="bar"><div class="fill" id="barFill"></div></div>
+    <div class="status" id="status" aria-live="polite">Introduce K y pulsa «Calcular».</div>
+    <div class="warn" id="warn"></div>
+  </section>
+
+  <section class="block">
+    <h2 id="resTitle">Resultados</h2>
+    <div class="stats">
+      <div class="stat">
+        <div class="lbl">Suma truncada <span class="math"><i>S<sub>K</sub></i></span></div>
+        <div class="val accent" id="stSK">—</div>
+        <div class="hint math"><i>S<sub>K</sub></i> = Σ<sub><i>k</i>=0</sub><sup><i>K</i></sup> (−1)<sup><i>k</i></sup>/(2<i>k</i>+1)<sup>2</sup></div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Valor exacto G</div>
+        <div class="val" id="stG">—</div>
+        <div class="hint">referencia en doble precisión</div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Error absoluto</div>
+        <div class="val amber" id="stErr">—</div>
+        <div class="hint math">|<i>G</i> − <i>S<sub>K</sub></i>|</div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Error relativo</div>
+        <div class="val" id="stRel">—</div>
+        <div class="hint math">|<i>G</i> − <i>S<sub>K</sub></i>| / <i>G</i></div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Cota de Leibniz</div>
+        <div class="val" id="stBound">—</div>
+        <div class="hint math">1/(2<i>K</i>+3)<sup>2</sup> · primer término omitido</div>
+      </div>
+      <div class="stat">
+        <div class="lbl">Cifras correctas</div>
+        <div class="val accent" id="stDigits">—</div>
+        <div class="hint">−log₁₀(error absoluto)</div>
+      </div>
+    </div>
+    <div class="subline" id="eulerLine">—</div>
+    <div class="meta" id="metaLine"></div>
+  </section>
+
+  <section class="block">
+    <h2>Gráficas de convergencia</h2>
+    <div class="charts">
+      <div class="card">
+        <h3>Sumas parciales <span class="math"><i>S<sub>k</sub></i></span> hacia G</h3>
+        <div class="chartbox">
+          <canvas id="cvConv" role="img" aria-label="Gráfica de las sumas parciales frente a k"></canvas>
+          <div class="ring" id="ringConv"></div>
+          <div class="tip" id="tipConv"></div>
+        </div>
+        <p class="cap">Suma parcial <span class="math"><i>S<sub>k</sub></i></span> frente a <span class="math"><i>k</i></span> (escala logarítmica en <span class="math"><i>k</i></span> cuando K &gt; 60). La línea discontinua marca el valor exacto G. Pasa el cursor por los puntos.</p>
+      </div>
+      <div class="card">
+        <h3>Error absoluto <span class="math">|<i>G</i> − <i>S<sub>k</sub></i>|</span></h3>
+        <div class="chartbox">
+          <canvas id="cvErr" role="img" aria-label="Gráfica del error absoluto en escala doble logarítmica"></canvas>
+          <div class="ring" id="ringErr"></div>
+          <div class="tip" id="tipErr"></div>
+        </div>
+        <p class="cap">Escala doble logarítmica: la pendiente −2 refleja el comportamiento asintótico 1/(8k²). Para K grandes aparece el suelo de la aritmética doble (~10⁻¹⁶).</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card block">
+    <h3>Sumas parciales seleccionadas</h3>
+    <div class="tscroll">
+      <table>
+        <thead>
+          <tr>
+            <th><span class="math"><i>k</i></span></th>
+            <th>término (−1)<sup><i>k</i></sup>/(2<span class="math"><i>k</i></span>+1)<sup>2</sup></th>
+            <th>suma parcial <span class="math"><i>S<sub>k</sub></i></span></th>
+            <th>error <span class="math">|<i>G</i> − <i>S<sub>k</sub></i>|</span></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="cap">Se muestran los primeros términos, las potencias de diez relevantes y la última suma <span class="math"><i>S<sub>K</sub></i></span> (fila resaltada). Es normal que <span class="math"><i>S<sub>k</sub></i></span> oscile alrededor de G: la serie es alternada, con errores que se alternan en signo.</p>
+  </section>
+
+  <section class="card block notes">
+    <h3>Notas matemáticas y numéricas</h3>
+    <ul>
+      <li><b>Cota de Leibniz (garantizada).</b> Al ser una serie alternada con términos en valor absoluto estrictamente decrecientes que tienden a cero, el error cometido al truncar en K nunca supera el primer término omitido: <span class="math">|<i>G</i> − <i>S<sub>K</sub></i>| ≤ 1/(2<i>K</i>+3)<sup>2</sup></span>. El panel de resultados muestra esta cota junto al error real.</li>
+      <li><b>Comportamiento asintótico.</b> El error real es aproximadamente la mitad del primer término omitido: <span class="math">|<i>G</i> − <i>S<sub>K</sub></i>| ≈ 1/(8<i>K</i><sup>2</sup>)</span>. En la gráfica log-log esto se traduce en una recta de pendiente −2. Consecuencia práctica: ganar dos cifras decimales de precisión exige multiplicar por 100 el número de términos sumados.</li>
+      <li><b>Aritmética y sumación de Kahan.</b> Todos los cálculos usan dobles IEEE-754 (unas 16 cifras decimales). La suma directa de millones de términos acumula redondeo; la <i>sumación de Kahan</i> empleada aquí compensa ese error a coste despreciable. Aun así, a partir de K ≈ 10⁷–10⁸ el error observable se estabiliza en torno a 10⁻¹⁶ (límite de la precisión doble) y dejar de mejorar: los valores por debajo de ese suelo no son representables.</li>
+      <li><b>Mejora de Euler.</b> La media de dos sumas parciales consecutivas, <span class="math">(<i>S<sub>K</sub></i> + <i>S<sub>K</sub>+1</i>)/2</span>, cancela el término dominante del error y pasa de O(K⁻²) a O(K⁻³): unas 2K veces menos error sin coste adicional. La app la muestra como «mejora de Euler».</li>
+      <li><b>Referencia.</b> G = 0.91596559417721901505460351493238411077414937428167… (sucesión A006752 de OEIS). La comparación se realiza contra el doble más próximo: 0.9159655941772190.</li>
+    </ul>
+  </section>
+
+  <footer>Aplicación sin dependencias externas ni conexiones de red — funciona sin conexión tras la primera visita.</footer>
+</div>
+
+<div id="iosHint" hidden>
+  <span>Para instalar la app en iPhone o iPad: pulsa <b>Compartir</b> y luego <b>«Añadir a pantalla de inicio»</b>.</span>
+  <button id="iosHintClose" aria-label="Cerrar aviso">×</button>
+</div>
+<script>
+(function () {
+  'use strict';
+
+  // ---------- Constantes ----------
+  var G_EXACT = 0.9159655941772190; // doble IEEE-754 más próximo a G
+  var G_REF = '0.91596559417721901505460351493238411077414937428167\u2026';
+  var MAX_K = 1e9;
+
+  var state = { K: 0, recs: [], busy: false, ready: false, ptsConv: [], ptsErr: [] };
+
+  // ---------- Elementos ----------
+  function $(id) { return document.getElementById(id); }
+  var el = {
+    input: $('kInput'), btn: $('calcBtn'), bar: $('bar'), fill: $('barFill'),
+    status: $('status'), warn: $('warn'),
+    resTitle: $('resTitle'),
+    stSK: $('stSK'), stG: $('stG'), stErr: $('stErr'), stRel: $('stRel'),
+    stBound: $('stBound'), stDigits: $('stDigits'),
+    euler: $('eulerLine'), meta: $('metaLine'),
+    cvConv: $('cvConv'), cvErr: $('cvErr'),
+    tipConv: $('tipConv'), tipErr: $('tipErr'),
+    ringConv: $('ringConv'), ringErr: $('ringErr'),
+    tbody: $('tbody')
+  };
+
+  var MONO = '11px ui-monospace, Menlo, Consolas, monospace';
+  var SUP = { '-': '\u207B', '0': '\u2070', '1': '\u00B9', '2': '\u00B2', '3': '\u00B3', '4': '\u2074', '5': '\u2075', '6': '\u2076', '7': '\u2077', '8': '\u2078', '9': '\u2079' };
+
+  // ---------- Utilidades ----------
+  function nf(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u2009'); }
+  function powStr(e) { return '10' + String(e).split('').map(function (c) { return SUP[c] || ''; }).join(''); }
+
+  function sciParts(x, sig) {
+    if (x === 0 || !isFinite(x)) return null;
+    var e = Math.floor(Math.log10(x));
+    var m = x / Math.pow(10, e);
+    var r = Number(m.toFixed(sig - 1));
+    if (r >= 10) { r /= 10; e += 1; }
+    return { m: r.toFixed(sig - 1), e: e };
+  }
+  function sciHTML(x, sig) {
+    if (sig === undefined) sig = 3;
+    var p = sciParts(x, sig);
+    if (!p) return '0';
+    return p.m + ' \u00D7 10<sup>' + p.e + '</sup>';
+  }
+
+  function niceTicks(min, max, target) {
+    var span = (max - min) || 1;
+    var raw = span / target;
+    var mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    var nrm = raw / mag;
+    var step;
+    if (nrm < 1.5) step = mag; else if (nrm < 3) step = 2 * mag; else if (nrm < 7) step = 5 * mag; else step = 10 * mag;
+    var ticks = [];
+    for (var t = Math.ceil(min / step - 1e-9) * step; t <= max + step * 1e-9; t += step) ticks.push(t);
+    return { ticks: ticks, step: step };
+  }
+
+  function buildSamples(K) {
+    var s = new Set();
+    var upto = Math.min(K, 100);
+    for (var k = 0; k <= upto; k++) s.add(k);
+    for (var d = 1; d <= 9; d++) {
+      var p = Math.pow(10, d);
+      if (p > K) break;
+      var mults = [1, 2, 5];
+      for (var i = 0; i < 3; i++) { var v = mults[i] * p; if (v <= K) s.add(v); }
+    }
+    s.add(K);
+    var arr = Array.from(s);
+    arr.sort(function (a, b) { return a - b; });
+    return arr;
+  }
+
+  // ---------- Cálculo (por bloques asíncronos, con Kahan) ----------
+  function compute(K) {
+    if (state.busy) return;
+    state.busy = true;
+    el.btn.disabled = true;
+    el.bar.classList.add('on');
+    el.fill.style.width = '0%';
+    el.status.textContent = 'Calculando\u2026 0%';
+
+    var samples = buildSamples(K);
+    var recs = [];
+    var si = 0, next = 0, sum = 0, comp = 0, sign = 1;
+    var batchSize = 2e6; // se autoajusta según la velocidad del equipo
+    var t0 = performance.now();
+
+    function chunk() {
+      var tickStart = performance.now();
+      var end = Math.min(K, next + batchSize - 1);
+      for (var k = next; k <= end; k++) {
+        var term = sign / ((2 * k + 1) * (2 * k + 1));
+        var y = term - comp;
+        var t = sum + y;
+        comp = (t - sum) - y;
+        sum = t;
+        sign = -sign;
+        if (si < samples.length && samples[si] === k) { recs.push({ k: k, S: sum }); si++; }
+      }
+      next = end + 1;
+      var dt = performance.now() - tickStart;
+      if (dt < 25 && batchSize < 4e7) batchSize = Math.min(4e7, Math.ceil(batchSize * 2));
+      else if (dt > 90 && batchSize > 2e5) batchSize = Math.max(2e5, Math.floor(batchSize / 2));
+      var pct = 100 * next / (K + 1);
+      el.fill.style.width = pct.toFixed(2) + '%';
+      el.status.textContent = 'Calculando\u2026 ' + Math.floor(pct) + '%';
+      if (next > K) finish(); else setTimeout(chunk, 0);
+    }
+
+    function finish() {
+      var dt = performance.now() - t0;
+      var aNext = 1 / ((2 * K + 3) * (2 * K + 3)); // primer término omitido = cota de Leibniz
+      var euler = sum + 0.5 * sign * aNext;        // (S_K + S_{K+1}) / 2
+      var errK = Math.abs(G_EXACT - sum);
+      var errEu = Math.abs(G_EXACT - euler);
+      state.K = K; state.recs = recs; state.ready = true;
+      render({ K: K, SK: sum, errK: errK, euler: euler, errEu: errEu, bound: aNext, terms: K + 1 });
+      buildTable();
+      drawCharts();
+      state.busy = false;
+      el.btn.disabled = false;
+      el.bar.classList.remove('on');
+      el.status.textContent = nf(K + 1) + ' t\u00E9rminos sumados en ' + (dt < 1000 ? dt.toFixed(1) + ' ms' : (dt / 1000).toFixed(2) + ' s') + '.';
+    }
+
+    setTimeout(chunk, 0);
+  }
+
+  // ---------- Render de resultados ----------
+  function render(r) {
+    el.resTitle.innerHTML = 'Resultados \u00B7 <span class="math"><i>K</i> = ' + nf(r.K) + '</span>';
+    el.stSK.textContent = r.SK.toFixed(14);
+    el.stG.textContent = G_EXACT.toFixed(16);
+    el.stErr.innerHTML = r.errK === 0 ? '0' : sciHTML(r.errK);
+    el.stRel.innerHTML = r.errK === 0 ? '0' : sciHTML(r.errK / G_EXACT);
+    el.stBound.innerHTML = sciHTML(r.bound);
+    el.stDigits.textContent = r.errK === 0 ? '\u221E' : Math.max(0, -Math.log10(r.errK)).toFixed(1);
+
+    var ratio = r.errEu > 0 ? r.bound / r.errEu : 0;
+    el.euler.innerHTML = 'Mejora de Euler \u2014 media de sumas consecutivas: '
+      + '<span class="mono strong">' + r.euler.toFixed(14) + '</span>'
+      + ' &nbsp;\u2192&nbsp; error ' + (r.errEu === 0 ? '0' : sciHTML(r.errEu))
+      + ' (comportamiento \u2248 1/(8K<sup>3</sup>)'
+      + (ratio >= 2 ? ', unas ' + nf(Math.round(ratio)) + ' veces menor que la cota de Leibniz' : '')
+      + ').';
+    el.meta.textContent = 'N = K + 1 = ' + nf(r.terms) + ' t\u00E9rminos \u00B7 sumaci\u00F3n de Kahan \u00B7 aritm\u00E9tica doble IEEE-754 \u00B7 referencia: G = ' + G_REF;
+  }
+
+  // ---------- Tabla ----------
+  function buildTable() {
+    var K = state.K;
+    var keep = new Set();
+    for (var k = 0; k <= Math.min(9, K); k++) keep.add(k);
+    for (var d = 1; d <= 9; d++) {
+      var p = Math.pow(10, d);
+      if (p > K) break;
+      var mults = [1, 2, 5];
+      for (var i = 0; i < 3; i++) { var v = mults[i] * p; if (v <= K) keep.add(v); }
+    }
+    keep.add(K);
+    var rows = state.recs.filter(function (r) { return keep.has(r.k); });
+    el.tbody.innerHTML = rows.map(function (r) {
+      var q = 2 * r.k + 1;
+      var sgn = (r.k % 2 === 0) ? '+' : '\u2212';
+      var termStr = r.k <= 9 ? (sgn + '1/' + (q * q)) : (sgn + sciHTML(1 / (q * q)));
+      var e = Math.abs(G_EXACT - r.S);
+      return '<tr' + (r.k === K ? ' class="last"' : '') + '>'
+        + '<td>' + nf(r.k) + '</td>'
+        + '<td>' + termStr + '</td>'
+        + '<td>' + r.S.toFixed(12) + '</td>'
+        + '<td>' + (e === 0 ? '0' : sciHTML(e)) + '</td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  // ---------- Lienzos ----------
+  function prepCanvas(cv) {
+    var dpr = window.devicePixelRatio || 1;
+    var rect = cv.getBoundingClientRect();
+    cv.width = Math.max(1, Math.round(rect.width * dpr));
+    cv.height = Math.max(1, Math.round(rect.height * dpr));
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    return { ctx: ctx, W: rect.width, H: rect.height };
+  }
+
+  function placeholder(ctx, W, H, msg) {
+    ctx.fillStyle = '#8a97b3';
+    ctx.font = '13px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(msg, W / 2, H / 2);
+  }
+
+  function drawConv() {
+    var P = prepCanvas(el.cvConv);
+    var ctx = P.ctx, W = P.W, H = P.H;
+    var pts = [];
+    state.ptsConv = pts;
+    var data = state.recs;
+    if (!data.length) { placeholder(ctx, W, H, 'Sin datos: pulsa \u00ABCalcular\u00BB.'); return; }
+
+    var useLog = state.K > 60;
+    var pad = { l: 64, r: 16, t: 14, b: 34 };
+    var iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+    if (iw <= 10 || ih <= 10) return;
+
+    var ymin = Infinity, ymax = -Infinity, i;
+    for (i = 0; i < data.length; i++) { var Sv = data[i].S; if (Sv < ymin) ymin = Sv; if (Sv > ymax) ymax = Sv; }
+    if (G_EXACT < ymin) ymin = G_EXACT;
+    if (G_EXACT > ymax) ymax = G_EXACT;
+    var ypad = (ymax - ymin) * 0.14 || 0.02;
+    ymin -= ypad; ymax += ypad;
+
+    var kmax = Math.max(state.K, 1);
+    function xOf(k) { return pad.l + (useLog ? (k <= 1 ? 0 : Math.log10(k) / Math.log10(kmax)) : k / kmax) * iw; }
+    function Y(v) { return pad.t + (1 - (v - ymin) / (ymax - ymin)) * ih; }
+
+    ctx.font = MONO;
+    var nt = niceTicks(ymin, ymax, 4);
+    var dec = Math.max(0, Math.min(6, Math.ceil(-Math.log10(nt.step))));
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    nt.ticks.forEach(function (t) {
+      var y = Y(t);
+      ctx.strokeStyle = '#eef1f8';
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+      ctx.fillStyle = '#68789a';
+      ctx.fillText(t.toFixed(dec), pad.l - 8, y);
+    });
+
+    ctx.textBaseline = 'top';
+    if (useLog) {
+      var emax = Math.ceil(Math.log10(kmax) - 1e-9);
+      for (var e2 = 0; e2 <= emax; e2++) {
+        var xv = Math.pow(10, e2);
+        if (xv > kmax) break;
+        var x = xOf(xv);
+        ctx.strokeStyle = '#e6ebf5';
+        ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ih); ctx.stroke();
+        ctx.fillStyle = '#68789a'; ctx.textAlign = 'center';
+        ctx.fillText(powStr(e2), x, pad.t + ih + 7);
+        if (e2 < emax) {
+          for (var m = 2; m < 10; m++) {
+            var mv = m * xv; if (mv > kmax) break;
+            var xm = xOf(mv);
+            ctx.strokeStyle = '#f2f4fa';
+            ctx.beginPath(); ctx.moveTo(xm, pad.t); ctx.lineTo(xm, pad.t + ih); ctx.stroke();
+          }
+        }
+      }
+    } else {
+      var nt2 = niceTicks(0, kmax, 5);
+      ctx.textAlign = 'center';
+      nt2.ticks.forEach(function (t) {
+        var x = xOf(t);
+        ctx.strokeStyle = '#eef1f8';
+        ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ih); ctx.stroke();
+        ctx.fillStyle = '#68789a';
+        ctx.fillText(String(Number(t.toFixed(6))), x, pad.t + ih + 7);
+      });
+    }
+
+    var yg = Y(G_EXACT);
+    ctx.save();
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = '#b45309';
+    ctx.beginPath(); ctx.moveTo(pad.l, yg); ctx.lineTo(W - pad.r, yg); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = '#b45309';
+    ctx.font = '600 11px ui-monospace, Menlo, Consolas, monospace';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('G \u2248 0.9159656', W - pad.r - 4, yg - 4);
+
+    ctx.strokeStyle = 'rgba(43,89,195,.45)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    data.forEach(function (p, idx) { var x = xOf(p.k), y = Y(p.S); if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    var lastX = null, lastY = null;
+    data.forEach(function (p) {
+      var x = xOf(p.k), y = Y(p.S);
+      ctx.fillStyle = '#2b59c3';
+      ctx.beginPath(); ctx.arc(x, y, 2.6, 0, 6.2832); ctx.fill();
+      pts.push({ px: x, py: y, k: p.k, S: p.S, e: Math.abs(G_EXACT - p.S) });
+      if (p.k === state.K) { lastX = x; lastY = y; }
+    });
+    if (lastX !== null) {
+      ctx.strokeStyle = '#b45309'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(lastX, lastY, 4.6, 0, 6.2832); ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+  }
+
+  function drawErr() {
+    var P = prepCanvas(el.cvErr);
+    var ctx = P.ctx, W = P.W, H = P.H;
+    var pts = [];
+    state.ptsErr = pts;
+
+    var data = [];
+    state.recs.forEach(function (p) {
+      if (p.k >= 1) { var e = Math.abs(G_EXACT - p.S); if (e > 0) data.push({ k: p.k, e: e }); }
+    });
+    if (!data.length) { placeholder(ctx, W, H, 'Sin puntos representables: se necesita k \u2265 1 con error no nulo.'); return; }
+
+    var pad = { l: 66, r: 16, t: 14, b: 34 };
+    var iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+    if (iw <= 10 || ih <= 10) return;
+
+    var emin = Infinity, emax = -Infinity;
+    data.forEach(function (p) { if (p.e < emin) emin = p.e; if (p.e > emax) emax = p.e; });
+    var lo = Math.max(emin * 0.25, 1e-18);
+    var hi = emax * 4;
+    var lmin = Math.log10(lo), lmax = Math.log10(hi);
+    var kmax = Math.max(state.K, data[data.length - 1].k, 10);
+
+    function xOf(k) { return pad.l + (Math.log10(k) / Math.log10(kmax)) * iw; }
+    function yOf(e) { return pad.t + (1 - (Math.log10(e) - lmin) / (lmax - lmin)) * ih; }
+
+    ctx.font = MONO;
+
+    var exmax = Math.ceil(Math.log10(kmax) - 1e-9);
+    for (var e2 = 0; e2 <= exmax; e2++) {
+      var xv = Math.pow(10, e2); if (xv > kmax) break;
+      var x = xOf(xv);
+      ctx.strokeStyle = '#e6ebf5';
+      ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ih); ctx.stroke();
+      ctx.fillStyle = '#68789a'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(powStr(e2), x, pad.t + ih + 7);
+      for (var m = 2; m < 10; m++) {
+        var mv = m * xv; if (mv > kmax) break;
+        var xm = xOf(mv);
+        ctx.strokeStyle = '#f2f4fa';
+        ctx.beginPath(); ctx.moveTo(xm, pad.t); ctx.lineTo(xm, pad.t + ih); ctx.stroke();
+      }
+    }
+
+    var eymin = Math.floor(lmin + 1e-9), eymax = Math.ceil(lmax - 1e-9);
+    for (var ey = eymin; ey <= eymax; ey++) {
+      var yv = Math.pow(10, ey); if (yv < lo || yv > hi) continue;
+      var y = yOf(yv);
+      ctx.strokeStyle = '#eef1f8';
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+      ctx.fillStyle = '#68789a'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillText(powStr(ey), pad.l - 8, y);
+    }
+
+    // Guía asintótica 1/(8k²)
+    ctx.save();
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = '#9aa7bf';
+    ctx.beginPath();
+    var started = false;
+    for (var xk = 10; xk <= kmax * 1.0000001; xk *= 1.2) {
+      var ge = 1 / (8 * xk * xk);
+      if (ge < lo) break;
+      var gx = xOf(xk), gy = yOf(ge);
+      if (!started) { ctx.moveTo(gx, gy); started = true; } else ctx.lineTo(gx, gy);
+    }
+    ctx.stroke();
+    ctx.restore();
+    if (started && kmax >= 25) {
+      ctx.fillStyle = '#77839d';
+      ctx.font = 'italic 11px Georgia, serif';
+      ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      ctx.fillText('1/(8k\u00B2)', W - pad.r - 4, yOf(1 / (8 * 10 * 10)) - 3);
+    }
+
+    // Suelo de precisión doble
+    if (lo < 1e-13) {
+      var yf = yOf(1.11e-16);
+      if (yf > pad.t - 2 && yf < pad.t + ih - 2) {
+        ctx.save();
+        ctx.setLineDash([6, 4]); ctx.strokeStyle = '#be123c';
+        ctx.beginPath(); ctx.moveTo(pad.l, yf); ctx.lineTo(W - pad.r, yf); ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = '#be123c';
+        ctx.font = '11px ui-monospace, Menlo, Consolas, monospace';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        ctx.fillText('l\u00EDmite de doble precisi\u00F3n (\u2248 10\u207B\u00B9\u2076)', pad.l + 8, yf - 3);
+      }
+    }
+
+    // Serie de puntos (log-log)
+    ctx.strokeStyle = 'rgba(43,89,195,.4)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    data.forEach(function (p, idx) { var x = xOf(p.k), y = yOf(p.e); if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    var lastX = null, lastY = null;
+    data.forEach(function (p) {
+      var x = xOf(p.k), y = yOf(p.e);
+      ctx.fillStyle = '#2b59c3';
+      ctx.beginPath(); ctx.arc(x, y, 2.6, 0, 6.2832); ctx.fill();
+      pts.push({ px: x, py: y, k: p.k, e: p.e });
+      if (p.k === state.K) { lastX = x; lastY = y; }
+    });
+    if (lastX !== null) {
+      ctx.strokeStyle = '#b45309'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(lastX, lastY, 4.6, 0, 6.2832); ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+  }
+
+  function drawCharts() { drawConv(); drawErr(); }
+
+  // ---------- Interacción en gráficas ----------
+  function attachHover(cv, tip, ring, getPts, fmt) {
+    cv.addEventListener('mousemove', function (ev) {
+      var pts = getPts();
+      if (!pts || !pts.length) return;
+      var r = cv.getBoundingClientRect();
+      var mx = ev.clientX - r.left, my = ev.clientY - r.top;
+      var best = null, bd = Infinity;
+      for (var i = 0; i < pts.length; i++) {
+        var dx = pts[i].px - mx, dy = pts[i].py - my;
+        var d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; best = pts[i]; }
+      }
+      if (best && bd <= 26 * 26) {
+        tip.innerHTML = fmt(best);
+        tip.style.opacity = '1';
+        ring.style.opacity = '1';
+        ring.style.left = best.px + 'px';
+        ring.style.top = best.py + 'px';
+        var bw = tip.offsetWidth;
+        var lx = best.px + 14;
+        if (lx + bw > r.width - 6) lx = best.px - 14 - bw;
+        tip.style.left = lx + 'px';
+        tip.style.top = Math.max(4, best.py - 36) + 'px';
+      } else {
+        tip.style.opacity = '0';
+        ring.style.opacity = '0';
+      }
+    });
+    cv.addEventListener('mouseleave', function () {
+      tip.style.opacity = '0';
+      ring.style.opacity = '0';
+    });
+  }
+
+  // ---------- Eventos ----------
+  function updateWarn() {
+    var v = parseFloat(el.input.value);
+    var big = Number.isFinite(v) && v > 1e8;
+    el.warn.classList.toggle('on', big);
+    if (big) el.warn.textContent = 'Con K > 10\u2078 el c\u00E1lculo puede tardar varios segundos; se ejecuta por bloques con barra de progreso.';
+  }
+
+  function tryRun() {
+    if (state.busy) { el.status.textContent = 'Espera al c\u00E1lculo en curso\u2026'; return; }
+    var v = el.input.value.trim();
+    if (v === '') { el.status.textContent = 'Introduce un valor de K.'; return; }
+    var K = Number(v);
+    if (!Number.isInteger(K) || K < 0) {
+      el.status.textContent = 'Valor no v\u00E1lido: introduce un n\u00FAmero entero K \u2265 0.';
+      return;
+    }
+    if (K > MAX_K) {
+      K = MAX_K;
+      el.input.value = String(MAX_K);
+      el.status.textContent = 'K limitado a ' + nf(MAX_K) + ' (m\u00E1ximo admitido).';
+    }
+    compute(K);
+  }
+
+  el.btn.addEventListener('click', tryRun);
+  el.input.addEventListener('keydown', function (e) { if (e.key === 'Enter') tryRun(); });
+  el.input.addEventListener('input', updateWarn);
+  Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (ch) {
+    ch.addEventListener('click', function () {
+      el.input.value = ch.getAttribute('data-k');
+      updateWarn();
+      tryRun();
+    });
+  });
+
+  attachHover(el.cvConv, el.tipConv, el.ringConv,
+    function () { return state.ptsConv; },
+    function (p) { return 'k = ' + nf(p.k) + ' \u00B7 S<sub>k</sub> = ' + p.S.toFixed(12) + ' \u00B7 |err| = ' + (p.e === 0 ? '0' : sciHTML(p.e, 2)); });
+  attachHover(el.cvErr, el.tipErr, el.ringErr,
+    function () { return state.ptsErr; },
+    function (p) { return 'k = ' + nf(p.k) + ' \u00B7 |G \u2212 S<sub>k</sub>| = ' + sciHTML(p.e, 2); });
+
+  var rto = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(rto);
+    rto = setTimeout(function () { if (state.ready) drawCharts(); }, 150);
+  });
+
+  // ---------- PWA: service worker, instalación y aviso iOS ----------
+  (function () {
+    if (!/^https?:$/.test(location.protocol)) return; // solo con HTTP(S): GitHub Pages, servidor local…
+    var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+      || window.navigator.standalone === true;
+
+    // Registro del service worker (funcionamiento offline)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js').catch(function () {});
+      });
+    }
+
+    // Botón de instalación (Android y escritorio, vía beforeinstallprompt)
+    var installBtn = $('installBtn'); // puede no existir en la versión de archivo único
+    var deferred = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferred = e;
+      if (installBtn && !standalone) installBtn.hidden = false;
+    });
+    if (installBtn) {
+      installBtn.addEventListener('click', function () {
+        if (!deferred) return;
+        deferred.prompt();
+        deferred.userChoice.then(function () { deferred = null; installBtn.hidden = true; })
+          .catch(function () { deferred = null; });
+      });
+    }
+    window.addEventListener('appinstalled', function () {
+      if (installBtn) installBtn.hidden = true;
+      var h = $('iosHint');
+      if (h) h.hidden = true;
+    });
+
+    // Aviso de instalación para iOS Safari (no dispara beforeinstallprompt)
+    function isIos() {
+      var ua = navigator.userAgent;
+      return /iPhone|iPad|iPod/i.test(ua)
+        || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+    }
+    var hint = $('iosHint');
+    if (hint && isIos() && !standalone) {
+      var dismissed = false;
+      try { dismissed = !!localStorage.getItem('catalan-ios-hint-ok'); } catch (err) {}
+      if (!dismissed) {
+        hint.hidden = false;
+        var close = $('iosHintClose');
+        if (close) close.addEventListener('click', function () {
+          hint.hidden = true;
+          try { localStorage.setItem('catalan-ios-hint-ok', '1'); } catch (err) {}
+        });
+      }
+    }
+  })();
+
+  // ---------- Inicio ----------
+  updateWarn();
+  compute(20);
+})();
+
+</script>
+</body>
+</html>
