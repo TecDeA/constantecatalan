@@ -1,5 +1,5 @@
-/* Service Worker — Constante de Catalán (PWA, funcionamiento offline) */
-var CACHE = 'catalan-g-v1.0.0';
+/* Service Worker — Constante de Catalan (PWA, funcionamiento offline) */
+var CACHE = 'catalan-g-v1.0.2'; // versión de la app: la muestra el chip de index.html
 
 var ASSETS = [
   './',
@@ -40,6 +40,19 @@ self.addEventListener('activate', function (e) {
         .map(function (k) { return caches.delete(k); }));
     }).then(function () { return self.clients.claim(); })
   );
+});
+
+// Consulta de versión desde la página: index.html pide la versión (CACHE) para su chip
+self.addEventListener('message', function (e) {
+  if (e.data && e.data.type === 'GET_VERSION') {
+    var payload = { type: 'VERSION', version: CACHE };
+    var port = e.ports && e.ports[0];
+    if (port) {
+      try { port.postMessage(payload); } catch (err) {}
+    } else if (e.source) {
+      try { e.source.postMessage(payload); } catch (err) {}
+    }
+  }
 });
 
 self.addEventListener('fetch', function (e) {
