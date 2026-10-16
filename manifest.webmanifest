@@ -5,7 +5,7 @@
   "description": "Calcula la constante de Catalán G = Σ (−1)^k/(2k+1)² truncando la serie en k = K y compara el error cometido con el valor exacto. Funciona sin conexión.",
   "lang": "es",
   "dir": "ltr",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
