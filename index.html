@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Constante de Catalán · suma truncada y error</title>
-<meta name="description" content="Calcula la constante de Catalán G = Σ (−1)^k/(2k+1)² truncando la serie en k = K y compara el error cometido con el valor exacto.">
+<title>Constante de Catalan · suma truncada y error</title>
+<meta name="description" content="Calcula la constante de Catalan G = Σ (−1)^k/(2k+1)² truncando la serie en k = K y compara el error cometido con el valor exacto.">
 <meta name="color-scheme" content="light">
 
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#f5f7fc">
-<meta name="application-name" content="Catalán G">
+<meta name="application-name" content="Catalan G">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Catalán G">
+<meta name="apple-mobile-web-app-title" content="Catalan G">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -48,6 +48,16 @@
   }
   h1 .gvar{ color: var(--accent); }
   .lead{ max-width: 680px; margin: 0 auto; color: #4a5a78; font-size: 15.5px; }
+  .ver-chip{
+    display: inline-flex; align-items: center; gap: 7px;
+    margin-top: 10px; padding: 5px 14px; min-height: 27px;
+    font: 600 12.5px var(--mono); letter-spacing: .03em;
+    color: var(--accent); background: #eef3fd;
+    border: 1px solid #d5e0f6; border-radius: 999px;
+    box-shadow: 0 1px 2px rgba(23,35,60,.05);
+  }
+  .ver-chip .dot{ flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .ver-chip[hidden]{ display: none; }
 
   .math{ font-family: Georgia, "Times New Roman", serif; font-style: normal; }
   .math i{ font-style: italic; }
@@ -199,8 +209,11 @@
 
   <header>
     <div class="overline">Series alternadas · Análisis numérico interactivo</div>
-    <h1>La constante de Catalán <span class="math gvar"><i>G</i></span></h1>
-    <p class="lead">La serie <span class="math"><i>G</i> = Σ (−1)<sup><i>k</i></sup>/(2<i>k</i>+1)<sup>2</sup></span> converge muy lentamente hacia la constante de Catalán. Esta herramienta trunca la suma en un índice <span class="math"><i>K</i></span> que tú eliges, calcula la aproximación <span class="math"><i>S<sub>K</sub></i></span> y mide el error cometido frente al valor exacto, con gráficas de convergencia y tabla de sumas parciales.</p>
+    <h1>La constante de Catalan <span class="math gvar"><i>G</i></span></h1>
+    <div class="ver-chip" id="verChip" hidden title="Versión de la aplicación, leída del service worker (sw.js)">
+      <span class="dot" aria-hidden="true"></span><span id="verChipText">v…</span>
+    </div>
+    <p class="lead">La serie <span class="math"><i>G</i> = Σ (−1)<sup><i>k</i></sup>/(2<i>k</i>+1)<sup>2</sup></span> converge muy lentamente hacia la constante de Catalan. Esta herramienta trunca la suma en un índice <span class="math"><i>K</i></span> que tú eliges, calcula la aproximación <span class="math"><i>S<sub>K</sub></i></span> y mide el error cometido frente al valor exacto, con gráficas de convergencia y tabla de sumas parciales.</p>
     <div class="formula-card">
       <div class="math formula-eq">
         <i>G</i>&nbsp;=
@@ -844,6 +857,52 @@
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('./sw.js').catch(function () {});
       });
+    }
+
+    // Chip de versión: se lee dinámicamente del service worker (sw.js)
+    var verChip = $('verChip'), verChipText = $('verChipText');
+    if (verChip && verChipText && 'serviceWorker' in navigator) {
+      var chipShown = '';
+      var chipPretty = function (v) {
+        var s = String(v || '').trim();
+        if (!s) return '';
+        var m = s.match(/v\d+(?:\.\d+)*$/i); // p. ej. «catalan-g-v1.0.1» → «v1.0.1»
+        return m ? m[0] : s;
+      };
+      var chipShow = function (raw) {
+        var p = chipPretty(raw);
+        if (!p) return;
+        if (chipShown === p) return;
+        chipShown = p;
+        verChipText.textContent = p;
+        verChip.hidden = false;
+      };
+      var askVersion = function (sw) {
+        if (!sw) return;
+        try {
+          var ch = new MessageChannel();
+          ch.port1.onmessage = function (ev) {
+            var d = ev.data || {};
+            if (d.type === 'VERSION' && d.version) chipShow(d.version);
+          };
+          sw.postMessage({ type: 'GET_VERSION' }, [ch.port2]);
+        } catch (err) {}
+      };
+      var queryVersion = function () {
+        if (navigator.serviceWorker.controller) askVersion(navigator.serviceWorker.controller);
+        navigator.serviceWorker.ready.then(function (reg) {
+          askVersion(reg.active || reg.waiting || reg.installing);
+        }).catch(function () {});
+      };
+      navigator.serviceWorker.addEventListener('controllerchange', queryVersion);
+      queryVersion();
+      // Respaldo: extraer la versión directamente del fichero del service worker
+      fetch('./sw.js', { cache: 'no-store' }).then(function (r) {
+        return r.ok ? r.text() : '';
+      }).then(function (t) {
+        var m = t && t.match(/var\s+CACHE\s*=\s*['"]([^'"]+)['"]/);
+        if (m) chipShow(m[1]);
+      }).catch(function () {});
     }
 
     // Botón de instalación (Android y escritorio, vía beforeinstallprompt)
