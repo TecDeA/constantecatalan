@@ -1,5 +1,5 @@
 /* Service Worker — Constante de Catalan (PWA, funcionamiento offline) */
-var CACHE = 'catalan-g-v1.0.2'; // versión de la app: la muestra el chip de index.html
+var CACHE = 'catalan-g-v1.0.3'; // versión de la app: la muestra el chip de index.html
 
 var ASSETS = [
   './',
@@ -36,7 +36,9 @@ self.addEventListener('install', function (e) {
 self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (k) { return k !== CACHE; })
+      // Filtrar por prefijo propio: caches.keys() es global al origen y
+      // sin este filtro se borraban las cachés del portal y demás apps.
+      return Promise.all(keys.filter(function (k) { return k.startsWith('catalan-g-') && k !== CACHE; })
         .map(function (k) { return caches.delete(k); }));
     }).then(function () { return self.clients.claim(); })
   );
